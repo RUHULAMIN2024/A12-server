@@ -32,22 +32,24 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
-    const userCollection = client.db("connectSphere").collection("allUsers");
+    const usersCollection = client.db("connectSphere").collection("allUsers");
 
     app.post("/users", async (req, res) => {
       const userData = req.body;
       const query = { email: userData.email };
-
-      const existingEmail = await userCollection.findOne(query);
+      const existingEmail = await usersCollection.findOne(query);
       if (existingEmail) {
         return res
           .status(400)
           .send({ message: "already exist!", insertedId: null });
       }
-      const result = await userCollection.insertOne(userData);
+      const result = await usersCollection.insertOne(userData);
       res.send(result);
     });
-
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
