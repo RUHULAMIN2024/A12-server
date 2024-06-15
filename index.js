@@ -33,6 +33,9 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     const usersCollection = client.db("connectSphere").collection("allUsers");
+    const forumPostsCollection = client
+      .db("connectSphere")
+      .collection("forumPosts");
 
     app.post("/users", async (req, res) => {
       const userData = req.body;
@@ -48,6 +51,25 @@ async function run() {
     });
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/forum-posts", async (req, res) => {
+      const sortBy = req.query.sortBy || "time";
+      const sortOrder =
+        sortBy === "popularity" ? { voteCount: -1 } : { time: -1 };
+      const result = await forumPostsCollection
+        .aggregate([
+          {
+            $addFields: {
+              voteCount: { $subtract: ["$upvotes", "$downvotes"] },
+            },
+          },
+          {
+            $sort: sortOrder,
+          },
+        ])
+        .toArray();
       res.send(result);
     });
     // Send a ping to confirm a successful connection
