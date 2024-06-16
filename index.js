@@ -83,7 +83,12 @@ async function run() {
       res.send(result);
     });
     app.get("/users", verifyUserToken, verifyAdminRole, async (req, res) => {
-      const result = await usersCollection.find().toArray();
+      const page = parseInt(req.query.page);
+      const result = await usersCollection
+        .find()
+        .skip(page * 5)
+        .limit(5)
+        .toArray();
       res.send(result);
     });
     app.get("/forum-posts-count", async (req, res) => {
@@ -261,6 +266,15 @@ async function run() {
           announcementData
         );
         res.send(result);
+      }
+    );
+    app.get(
+      "/users-count",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const result = await usersCollection.countDocuments();
+        res.send({ count: result });
       }
     );
     // Send a ping to confirm a successful connection
