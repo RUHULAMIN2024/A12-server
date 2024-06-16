@@ -78,7 +78,7 @@ async function run() {
       const result = await usersCollection.insertOne(userData);
       res.send(result);
     });
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyUserToken, verifyAdminRole, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -107,13 +107,17 @@ async function run() {
         .toArray();
       res.send(result);
     });
-    app.get("/forum-post-data-count/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { authorEmail: email };
-      const result = await forumPostsCollection.countDocuments(query);
-      res.send({ count: result });
-    });
-    app.get("/check-user-badge/:email", async (req, res) => {
+    app.get(
+      "/forum-post-data-count/:email",
+      verifyUserToken,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { authorEmail: email };
+        const result = await forumPostsCollection.countDocuments(query);
+        res.send({ count: result });
+      }
+    );
+    app.get("/check-user-badge/:email", verifyUserToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await usersCollection.findOne(query);
@@ -134,7 +138,7 @@ async function run() {
       const result = await forumPostsCollection.findOne(query);
       res.send(result);
     });
-    app.post("/create-membership-intent", async (req, res) => {
+    app.post("/create-membership-intent", verifyUserToken, async (req, res) => {
       const { membershipfee } = req.body;
       const membershipfeeInt = parseInt(membershipfee * 100);
       const membershipIntent = await stripe.paymentIntents.create({
@@ -146,7 +150,7 @@ async function run() {
         clientSecret: membershipIntent.client_secret,
       });
     });
-    app.patch("/get-gold-badge/:email", async (req, res) => {
+    app.patch("/get-gold-badge/:email", verifyUserToken, async (req, res) => {
       const userEmail = req.params.email;
       const query = { email: userEmail };
       const updateBadge = {
@@ -165,12 +169,73 @@ async function run() {
       }
       const query = { email: email };
       const result = await usersCollection.findOne(query);
-      console.log(result);
+
       if (result?.role === "admin") {
         return res.send(true);
       }
 
       return res.send(false);
+    });
+    app.get("/my-forum-posts/:email", verifyUserToken, async (req, res) => {
+      const email = req.params.email;
+      const page = parseInt(req.query.page);
+      const query = { authorEmail: email };
+      const result = await forumPostsCollection
+        .find(query)
+        .skip(page * 5)
+        .limit(5)
+        .toArray();
+      res.send(result);
+    });
+    app.delete("/forum-posts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await forumPostsCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.get(
+      "/my-forum-posts-count/:email",
+      verifyUserToken,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { authorEmail: email };
+        const result = await forumPostsCollection.countDocuments(query);
+        res.send({ count: result });
+      }
+    );
+    app.get(
+      "/users-admin-profile/:email",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email, role: "admin" };
+        const result = await usersCollection.findOne(query);
+        res.send(result);
+      }
+    );
+    app.get(
+      "/number-of-forum-posts",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const result = await forumPostsCollection.countDocuments();
+        res.send({ count: result });
+      }
+    );
+    app.get("/number-of-users", async (req, res) => {
+      const result = await usersCollection.countDocuments();
+      res.send({ count: result });
+    });
+    app.put("/users-make-admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const updateRole = {
+        $set: { role: "admin" },
+      };
+      // const options = { upsert: true };
+      const result = await usersCollection.updateOne(query, updateRole);
+      res.send(result);
     });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
