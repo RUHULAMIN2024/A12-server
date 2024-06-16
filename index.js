@@ -53,9 +53,14 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-
+    app.get("/forum-posts-count", async (req, res) => {
+      const result = await forumPostsCollection.countDocuments();
+      console.log(result);
+      res.send({ count: result });
+    });
     app.get("/forum-posts", async (req, res) => {
       const sortBy = req.query.sortBy || "time";
+      const page = parseInt(req.query.page);
       const sortOrder =
         sortBy === "popularity" ? { voteCount: -1 } : { time: -1 };
       const result = await forumPostsCollection
@@ -69,6 +74,8 @@ async function run() {
             $sort: sortOrder,
           },
         ])
+        .skip(page * 3)
+        .limit(3)
         .toArray();
       res.send(result);
     });
