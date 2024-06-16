@@ -1,25 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-
 require("dotenv").config();
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
-
 const app = express();
-
 app.use(
   cors({
     origin: ["http://localhost:5173"],
-    credentials: true,
-    optionsSuccessStatus: 200,
   })
 );
-
 app.use(express.json());
-
 const uri = `mongodb+srv://${process.env.KEY}:${process.env.KEY}@cluster0.rth5hqd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -55,7 +47,6 @@ async function run() {
     });
     app.get("/forum-posts-count", async (req, res) => {
       const result = await forumPostsCollection.countDocuments();
-      console.log(result);
       res.send({ count: result });
     });
     app.get("/forum-posts", async (req, res) => {
@@ -79,12 +70,24 @@ async function run() {
         .toArray();
       res.send(result);
     });
-
     app.get("/forum-posts-detailes/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await forumPostsCollection.findOne(query);
       res.send(result);
+    });
+
+    app.post("/create-membership-intent", async (req, res) => {
+      const { membershipfee } = req.body;
+      const membershipfeeInt = parseInt(membershipfee * 100);
+      const membershipIntent = await stripe.paymentIntents.create({
+        amount: membershipfeeInt,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: membershipIntent.client_secret,
+      });
     });
 
     // Send a ping to confirm a successful connection
