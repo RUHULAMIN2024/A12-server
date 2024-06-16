@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -20,6 +21,25 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+const verifyUserToken = (req, res, next) => {
+  const authorizationUserToken = req.headers.authorization;
+  if (!authorizationUserToken) {
+    return res.status(401).send({
+      message: "not authorized!",
+    });
+  }
+  const token = req.headers.authorization.split(" ")[1];
+
+  jwt.verify(token, process.env.USER_SECRET_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.decodedUserToken = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -29,6 +49,23 @@ async function run() {
       .db("connectSphere")
       .collection("forumPosts");
 
+    const verifyAdminRole = async (req, res, next) => {
+      const email = req.decodedUserToken.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const isAdminRole = user?.role === "admin";
+      if (!isAdminRole) {
+        return res.status(403).send({ message: "forbidden access!" });
+      }
+      next();
+    };
+    app.post("/jwt-login", async (req, res) => {
+      const userData = req.body;
+      const userTokenData = jwt.sign(userData, process.env.USER_SECRET_TOKEN, {
+        expiresIn: process.env.USER_EXPIRED_DATR,
+      });
+      res.send({ userTokenData });
+    });
     app.post("/users", async (req, res) => {
       const userData = req.body;
       const query = { email: userData.email };
@@ -76,7 +113,6 @@ async function run() {
       const result = await forumPostsCollection.findOne(query);
       res.send(result);
     });
-
     app.post("/create-membership-intent", async (req, res) => {
       const { membershipfee } = req.body;
       const membershipfeeInt = parseInt(membershipfee * 100);
@@ -89,7 +125,32 @@ async function run() {
         clientSecret: membershipIntent.client_secret,
       });
     });
+    app.patch("/get-gold-badge/:email", async (req, res) => {
+      const userEmail = req.params.email;
+      const query = { email: userEmail };
+      const updateBadge = {
+        $set: { badge: "gold" },
+      };
+      const result = await usersCollection.updateOne(query, updateBadge);
+      res.send(result);
+    });
+    app.get("/users-admin-role/:email", verifyUserToken, async (req, res) => {
+      const email = req.params.email;
 
+      if (email !== req.decodedUserToken.email) {
+        return res.status(401).send({
+          message: "not authorized!",
+        });
+      }
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      console.log(result);
+      if (result?.role === "admin") {
+        return res.send(true);
+      }
+
+      return res.send(false);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
