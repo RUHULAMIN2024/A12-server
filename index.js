@@ -107,6 +107,27 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    app.get("/forum-post-data-count/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { authorEmail: email };
+      const result = await forumPostsCollection.countDocuments(query);
+      res.send({ count: result });
+    });
+    app.get("/check-user-badge/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      if (result.badge === "gold") {
+        return res.send({ isMember: true });
+      } else {
+        return res.send({ isMember: false });
+      }
+    });
+    app.post("/forum-post-data", async (req, res) => {
+      const forumPostData = req.body;
+      const result = await forumPostsCollection.insertOne(forumPostData);
+      res.send(result);
+    });
     app.get("/forum-posts-detailes/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
