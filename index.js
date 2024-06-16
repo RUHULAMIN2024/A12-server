@@ -49,6 +49,10 @@ async function run() {
       .db("connectSphere")
       .collection("forumPosts");
 
+    const announcementsCollection = client
+      .db("connectSphere")
+      .collection("announcementData");
+
     const verifyAdminRole = async (req, res, next) => {
       const email = req.decodedUserToken.email;
       const query = { email: email };
@@ -223,20 +227,42 @@ async function run() {
         res.send({ count: result });
       }
     );
-    app.get("/number-of-users", async (req, res) => {
-      const result = await usersCollection.countDocuments();
-      res.send({ count: result });
-    });
-    app.put("/users-make-admin/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email: email };
-      const updateRole = {
-        $set: { role: "admin" },
-      };
-      // const options = { upsert: true };
-      const result = await usersCollection.updateOne(query, updateRole);
-      res.send(result);
-    });
+    app.get(
+      "/number-of-users",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const result = await usersCollection.countDocuments();
+        res.send({ count: result });
+      }
+    );
+    app.put(
+      "/users-make-admin/:email",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email };
+        const updateRole = {
+          $set: { role: "admin" },
+        };
+        // const options = { upsert: true };
+        const result = await usersCollection.updateOne(query, updateRole);
+        res.send(result);
+      }
+    );
+    app.post(
+      "/announcements-post",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const announcementData = req.body;
+        const result = await announcementsCollection.insertOne(
+          announcementData
+        );
+        res.send(result);
+      }
+    );
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
