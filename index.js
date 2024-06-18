@@ -8,7 +8,11 @@ const port = process.env.PORT || 5000;
 const app = express();
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://b9a12-server-side-ruhulamin-2024.vercel.app",
+      "https://assignment12-60ec2.web.app",
+    ],
   })
 );
 app.use(express.json());
