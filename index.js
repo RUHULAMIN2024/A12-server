@@ -100,6 +100,19 @@ async function run() {
       const result = await forumPostsCollection.countDocuments();
       res.send({ count: result });
     });
+    app.get(
+      "/my-recent-forum-posts/:email",
+      verifyUserToken,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { authorEmail: email };
+        const result = await forumPostsCollection
+          .find(query)
+          .limit(3)
+          .toArray();
+        res.send(result);
+      }
+    );
     app.get("/forum-posts", async (req, res) => {
       const sortBy = req.query.sortBy || "time";
       const page = parseInt(req.query.page);
