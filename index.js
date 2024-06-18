@@ -112,8 +112,8 @@ async function run() {
             $sort: sortOrder,
           },
         ])
-        .skip(page * 3)
-        .limit(3)
+        .skip(page * 5)
+        .limit(5)
         .toArray();
       res.send(result);
     });
@@ -148,7 +148,7 @@ async function run() {
       const result = await forumPostsCollection.findOne(query);
       res.send(result);
     });
-    app.post("/create-membership-intent", verifyUserToken, async (req, res) => {
+    app.post("/create-membership-intent", async (req, res) => {
       const { membershipfee } = req.body;
       const membershipfeeInt = parseInt(membershipfee * 100);
       const membershipIntent = await stripe.paymentIntents.create({
@@ -160,7 +160,7 @@ async function run() {
         clientSecret: membershipIntent.client_secret,
       });
     });
-    app.patch("/get-gold-badge/:email", verifyUserToken, async (req, res) => {
+    app.patch("/get-gold-badge/:email", async (req, res) => {
       const userEmail = req.params.email;
       const query = { email: userEmail };
       const updateBadge = {
