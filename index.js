@@ -52,6 +52,7 @@ async function run() {
     const announcementsCollection = client
       .db("connectSphere")
       .collection("announcementData");
+    const tagsCollection = client.db("connectSphere").collection("allTags");
 
     const verifyAdminRole = async (req, res, next) => {
       const email = req.decodedUserToken.email;
@@ -285,6 +286,22 @@ async function run() {
       const result = await announcementsCollection.countDocuments();
       res.send({ count: result });
     });
+    app.post(
+      "/add-tags",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const tagsData = req.body;
+        const existingTag = await tagsCollection.findOne({
+          tag: tagsData.tag,
+        });
+        if (existingTag) {
+          return res.send({ message: "Tag already exists" });
+        }
+        const result = await tagsCollection.insertOne(tagsData);
+        res.send(result);
+      }
+    );
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
