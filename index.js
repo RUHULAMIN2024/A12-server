@@ -281,6 +281,10 @@ async function run() {
       const result = await announcementsCollection.find().toArray();
       res.send(result);
     });
+    app.get("/annoucements-count", async (req, res) => {
+      const result = await announcementsCollection.countDocuments();
+      res.send({ count: result });
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
