@@ -100,6 +100,74 @@ async function run() {
       const result = await forumPostsCollection.countDocuments();
       res.send({ count: result });
     });
+    app.post("/forum-post-comment/:id", async (req, res) => {
+      const id = req.params.id;
+      const commentData = req.body;
+      const query = { _id: new ObjectId(id) };
+      const findForumPost = await forumPostsCollection.findOne(query);
+      const existingComment = findForumPost?.comments.some(
+        (comment) => comment.userEmail === commentData.userEmail
+      );
+      if (existingComment) {
+        return res.send({ message: "User has already commented on this post" });
+      }
+      const result = await forumPostsCollection.updateOne(query, {
+        $push: { comments: commentData },
+      });
+      res.send(result);
+    });
+    app.post("/forum-post-upvote/:id", async (req, res) => {
+      const id = req.params.id;
+      const voteData = req.body;
+      const query = { _id: new ObjectId(id) };
+      const findForumPost = await forumPostsCollection.findOne(query);
+
+      if (!findForumPost.upVotesUser) {
+        findForumPost.upVotesUser = [];
+      }
+      const existingVote = findForumPost.upVotesUser.find(
+        (vote) => vote.userEmail === voteData.userEmail
+      );
+      if (existingVote) {
+        res.send({ message: "User has already upvote" });
+        return;
+      }
+
+      findForumPost.upVotesUser.push({
+        userEmail: voteData.userEmail,
+      });
+      await forumPostsCollection.updateOne(query, {
+        $set: { upVotesUser: findForumPost.upVotesUser },
+        $inc: { upVotes: 1 },
+      });
+      res.send({ message: "upvote added successfully" });
+    });
+    app.post("/forum-post-downvote/:id", async (req, res) => {
+      const id = req.params.id;
+      const voteData = req.body;
+      const query = { _id: new ObjectId(id) };
+      const findForumPost = await forumPostsCollection.findOne(query);
+
+      if (!findForumPost.downVotesUser) {
+        findForumPost.downVotesUser = [];
+      }
+      const existingVote = findForumPost.downVotesUser.find(
+        (vote) => vote.userEmail === voteData.userEmail
+      );
+      if (existingVote) {
+        res.send({ message: "User has already downvote" });
+        return;
+      }
+
+      findForumPost.downVotesUser.push({
+        userEmail: voteData.userEmail,
+      });
+      await forumPostsCollection.updateOne(query, {
+        $set: { downVotesUser: findForumPost.downVotesUser },
+        $inc: { downVotes: 1 },
+      });
+      res.send({ message: "downvote added successfully" });
+    });
     app.get(
       "/my-recent-forum-posts/:email",
       verifyUserToken,
@@ -143,7 +211,6 @@ async function run() {
           $match: { postTag: bannerSearchTag },
         });
       }
-
       const result = await forumPostsCollection.aggregate(pipeline).toArray();
 
       // const result = await forumPostsCollection
