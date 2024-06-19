@@ -180,7 +180,7 @@ async function run() {
       const email = req.params.email;
       const query = { email: email };
       const result = await usersCollection.findOne(query);
-      if (result.badge === "gold") {
+      if (result?.badge === "gold") {
         return res.send({ isMember: true });
       } else {
         return res.send({ isMember: false });
