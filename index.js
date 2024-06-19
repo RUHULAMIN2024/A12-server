@@ -115,23 +115,55 @@ async function run() {
     );
     app.get("/forum-posts", async (req, res) => {
       const sortBy = req.query.sortBy || "time";
-      const page = parseInt(req.query.page);
+      const page = parseInt(req.query.page) || 0;
+      const bannerSearchTag = req.query.searchTag;
       const sortOrder =
-        sortBy === "popularity" ? { voteCount: -1 } : { time: -1 };
-      const result = await forumPostsCollection
-        .aggregate([
-          {
-            $addFields: {
-              voteCount: { $subtract: ["$upvotes", "$downvotes"] },
+        sortBy === "popularity" ? { voteCount: -1 } : { postTime: -1 };
+      const pipeline = [
+        {
+          $addFields: {
+            voteCount: {
+              $subtract: [{ $toInt: "$upVotes" }, { $toInt: "$downVotes" }],
             },
           },
-          {
-            $sort: sortOrder,
-          },
-        ])
-        .skip(page * 5)
-        .limit(5)
-        .toArray();
+        },
+        {
+          $sort: sortOrder,
+        },
+        {
+          $skip: page * 5,
+        },
+        {
+          $limit: 5,
+        },
+      ];
+
+      if (bannerSearchTag) {
+        pipeline.unshift({
+          $match: { postTag: bannerSearchTag },
+        });
+      }
+
+      const result = await forumPostsCollection.aggregate(pipeline).toArray();
+
+      // const result = await forumPostsCollection
+      //   .aggregate([
+      //     {
+      //       $addFields: {
+      //         voteCount: { $subtract: ["$upvotes", "$downvotes"] },
+      //       },
+      //     },
+      //     {
+      //       $sort: sortOrder,
+      //     },
+      //     {
+      //       $skip: page * 5,
+      //     },
+      //     {
+      //       $limit: 5,
+      //     },
+      //   ])
+      //   .toArray();
       res.send(result);
     });
     app.get(
