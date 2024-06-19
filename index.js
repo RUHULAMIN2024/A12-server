@@ -58,6 +58,10 @@ async function run() {
       .collection("announcementData");
     const tagsCollection = client.db("connectSphere").collection("allTags");
 
+    const forumReportsCollection = client
+      .db("connectSphere")
+      .collection("forumReports");
+
     const verifyAdminRole = async (req, res, next) => {
       const email = req.decodedUserToken.email;
       const query = { email: email };
@@ -105,7 +109,7 @@ async function run() {
       const commentData = req.body;
       const query = { _id: new ObjectId(id) };
       const findForumPost = await forumPostsCollection.findOne(query);
-      const existingComment = findForumPost?.comments.some(
+      const existingComment = findForumPost?.comments?.some(
         (comment) => comment.userEmail === commentData.userEmail
       );
       if (existingComment) {
@@ -123,7 +127,7 @@ async function run() {
         projection: { comments: 1 },
       };
       const findForumPost = await forumPostsCollection.findOne(query, options);
-      res.send(findForumPost.comments || []);
+      res.send(findForumPost.comments);
     });
     app.post("/forum-post-upvote/:id", async (req, res) => {
       const id = req.params.id;
@@ -391,6 +395,31 @@ async function run() {
         const result = await announcementsCollection.insertOne(
           announcementData
         );
+        res.send(result);
+      }
+    );
+    app.post("/forum-post-report", verifyUserToken, async (req, res) => {
+      const reportData = req.body;
+      const result = await forumReportsCollection.insertOne(reportData);
+      res.send(result);
+    });
+    app.get(
+      "/repoted-data",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const result = await forumReportsCollection.find().toArray();
+        res.send(result);
+      }
+    );
+    app.delete(
+      "/repoted-data/:id",
+      verifyUserToken,
+      verifyAdminRole,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await forumReportsCollection.deleteOne(query);
         res.send(result);
       }
     );
