@@ -197,7 +197,7 @@ async function run() {
       const result = await forumPostsCollection.findOne(query);
       res.send(result);
     });
-    app.post("/create-membership-intent", async (req, res) => {
+    app.post("/create-membership-intent", verifyUserToken, async (req, res) => {
       const { membershipfee } = req.body;
       const membershipfeeInt = parseInt(membershipfee * 100);
       const membershipIntent = await stripe.paymentIntents.create({
@@ -206,10 +206,10 @@ async function run() {
         payment_method_types: ["card"],
       });
       res.send({
-        clientSecret: membershipIntent.client_secret,
+        clientSecret: membershipIntent?.client_secret,
       });
     });
-    app.patch("/get-gold-badge/:email", async (req, res) => {
+    app.patch("/get-gold-badge/:email", verifyUserToken, async (req, res) => {
       const userEmail = req.params.email;
       const query = { email: userEmail };
       const updateBadge = {
