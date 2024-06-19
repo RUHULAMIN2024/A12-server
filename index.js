@@ -116,6 +116,15 @@ async function run() {
       });
       res.send(result);
     });
+    app.get("/forum-posts-comments/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = {
+        projection: { comments: 1 },
+      };
+      const findForumPost = await forumPostsCollection.findOne(query, options);
+      res.send(findForumPost.comments || []);
+    });
     app.post("/forum-post-upvote/:id", async (req, res) => {
       const id = req.params.id;
       const voteData = req.body;
