@@ -124,6 +124,10 @@ async function run() {
       });
       res.send(result);
     });
+    app.get("/number-of-comments", async (req, res) => {
+      const result = await forumPostCommentsCollection.countDocuments();
+      res.send({ count: result });
+    });
     app.get("/forum-posts-comments/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
