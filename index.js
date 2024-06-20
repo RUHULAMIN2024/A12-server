@@ -61,6 +61,9 @@ async function run() {
     const forumReportsCollection = client
       .db("connectSphere")
       .collection("forumReports");
+    const forumPostCommentsCollection = client
+      .db("connectSphere")
+      .collection("allPostComments");
 
     const verifyAdminRole = async (req, res, next) => {
       const email = req.decodedUserToken.email;
@@ -115,6 +118,7 @@ async function run() {
       if (existingComment) {
         return res.send({ message: "User has already commented on this post" });
       }
+      await forumPostCommentsCollection.insertOne(commentData);
       const result = await forumPostsCollection.updateOne(query, {
         $push: { comments: commentData },
       });
