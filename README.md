@@ -1,4 +1,4 @@
-# Connect Sphere (server)
+# Connect Sphere 
 
 Welcome to Connect Sphere a community forum where users can connect, share ideas, and engage in meaningful discussions. Below you will find important information about the website, including the admin credentials and a list of key features.
 
